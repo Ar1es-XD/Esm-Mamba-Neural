@@ -42,8 +42,8 @@ class AntibodyAntigenDataset(Dataset):
     
     def __getitem__(self, idx):
         ab_id, ag_id, label = self.pairs[idx]
-        ab_emb = np.load(f"Data/Pretrained_Cov/ab/{ab_id}.npy")  # (L_ab, 1280)
-        ag_emb = np.load(f"Data/Pretrained_Cov/ag/{ag_id}.npy")  # (L_ag, 1280)
+        ab_emb = np.load(f"Outputs/Pretrained_HIV/ab/{ab_id}.npy")  # (L_ab, 320)
+        ag_emb = np.load(f"Outputs/Pretrained_HIV/ag/{ag_id}.npy")  # (L_ag, 320)
         return (
             torch.FloatTensor(ab_emb),
             torch.FloatTensor(ag_emb),

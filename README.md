@@ -16,3 +16,4 @@ Source code and data for "Bio-inspired Mamba for antibody-antigen interaction pr
 * Next, the following scenarios can be tested:
 * python Main_5cv.py \<parameters\>  #---Binary classification task with 5-fold CV
 * python Main_indep.py \<parameters\> #---Independent testing with 9(traing):1(testing) split of the dataset
+# esm_mamba

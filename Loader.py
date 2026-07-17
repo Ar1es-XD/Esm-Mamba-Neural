@@ -45,19 +45,30 @@ def sample_load(data_root, ratio):
     ab_info = pd.read_csv(ab_info, index_col=None, header=0)
     ag_info = pd.read_csv(ag_info, index_col=None, header=0)
 
-    len_ab = [len(l) for l in ab_info['heavy']]
-    len_ag = [len(l) for l in ag_info['ag_seq']]
+    len_ab = ab_info['heavy'].fillna('').astype(str).str.len() + ab_info['light'].fillna('').astype(str).str.len()
+    len_ag = ag_info['ag_seq'].str.len()
     thres_ab = int(np.percentile(len_ab, ratio))
     thres_ag = int(np.percentile(len_ag, ratio))
-
+    print(f"Dataset thresholds: ab={thres_ab}, ag={thres_ag}")
+    
     AbAg_pairs = []
-    for index, row in pairs.iterrows():
-        ag = ag_info.loc[ag_info['ag_name'] == str(row['ag_name'])]
-        ab = ab_info.loc[ab_info['ab_name'] == str(row['ab_name'])]
-        l_ab = ab['heavy'].str.len()
+    for idx, row in pairs.iterrows():
+        ab = ab_info[ab_info['ab_name'] == row['ab_name']]
+        ag = ag_info[ag_info['ag_name'] == row['ag_name']]
+        
+        # calculate length for this specific pair
+        l_ab = ab['heavy'].fillna('').astype(str).str.len() + ab['light'].fillna('').astype(str).str.len()
         l_ag = ag['ag_seq'].str.len()
         if l_ab.iloc[0]<=thres_ab and l_ag.iloc[0]<=thres_ag:
-            pair = zip(ab['ab_name'], ag['ag_name'], str(row['label']))
-            AbAg_pairs += pair
+            ab_id = str(ab['ab_name'].iloc[0])
+            ag_id = str(ag['ag_name'].iloc[0])
+            
+            # Check if .npy files actually exist (some might have failed extraction)
+            import os
+            ab_path = f"Outputs/Pretrained_HIV/ab/{ab_id}.npy"
+            ag_path = f"Outputs/Pretrained_HIV/ag/{ag_id}.npy"
+            if os.path.exists(ab_path) and os.path.exists(ag_path):
+                pair = zip(ab['ab_name'], ag['ag_name'], str(row['label']))
+                AbAg_pairs += pair
 
     return AbAg_pairs, thres_ab, thres_ag

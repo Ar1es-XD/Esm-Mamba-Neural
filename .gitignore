@@ -1,0 +1,19 @@
+# Virtual Environments
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Massive Data/Output folders
+Outputs/
+
+# Logs
+*.log
+
+# Mac OS
+.DS_Store
+*.npy
+Data/Pretrained_Cov/

@@ -11,7 +11,8 @@ from Loader import *
 import math
 from torch.utils.data import DataLoader
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu"))
+print(f"Using device: {device}")
 
 def train_epoch(mymodel, train_loader):
     loss_train = 0

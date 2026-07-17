@@ -14,14 +14,16 @@ import math
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+device = torch.device("mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu"))
+print(f"Using device: {device}")
+
 def train_epoch(mymodel, train_loader):
     loss_train = 0
     Y_true, Y_pred = [], []
-    #for batch, (ab, ag, labels) in enumerate(tqdm(train_loader)):
-    for batch, (ab, ag, labels) in enumerate(train_loader):
-        ab = ab.to('cuda:0')
-        ag = ag.to('cuda:0')
-        labels = labels.to('cuda:0')  
+    for batch, (ab, ag, labels) in enumerate(tqdm(train_loader, desc="Training Epoch")):
+        ab = ab.to(device)
+        ag = ag.to(device)
+        labels = labels.to(device)  
         optimizer.zero_grad()
         preds = mymodel(ab, ag)
         loss = criterion(preds, labels)
@@ -43,9 +45,9 @@ def valid_epoch(mymodel, valid_loader, flag=True):
     with torch.no_grad():
         #for batch, (ab, ag, labels) in enumerate(tqdm(valid_loader)):
         for batch, (ab, ag, labels) in enumerate(valid_loader):
-            ab = ab.to('cuda:0')
-            ag = ag.to('cuda:0')
-            labels = labels.to('cuda:0')  
+            ab = ab.to(device)
+            ag = ag.to(device)
+            labels = labels.to(device)  
             preds = mymodel(ab, ag)
             loss = criterion(preds, labels)
             loss_valid += loss.item()
@@ -76,7 +78,7 @@ if __name__ == '__main__':
     print(len(CV))
     print(len(Independent))
     Independent = AntibodyAntigenDataset(Independent)
-    Indep_loader = DataLoader(Independent, batch_size=param['batchsize'], shuffle=True, num_workers=4, 
+    Indep_loader = DataLoader(Independent, batch_size=param['batchsize'], shuffle=True, num_workers=0, 
                               collate_fn=custom_collate_fn)
 
     kf = KFold(n_splits = args.n, shuffle = True, random_state = (args.seed)) 
@@ -96,7 +98,7 @@ if __name__ == '__main__':
                         mamba_layer=param["mamba_layer"],
                         pooling=param["pooling_way"],
                         activation=param["activation"], 
-                        drop_ratio=param["dropout"]).to('cuda:0')
+                        drop_ratio=param["dropout"]).to(device)
         # model = nn.DataParallel(model, device_ids=[0, 1]) 
         # for name, param in model.named_parameters():
         #     print(f"{name}: requires_grad={param.requires_grad}")
@@ -107,9 +109,9 @@ if __name__ == '__main__':
         valid_set = list(map(CV.__getitem__, valid_index))
         train_set = AntibodyAntigenDataset(train_set)
         valid_set = AntibodyAntigenDataset(valid_set)
-        train_loader = DataLoader(train_set, batch_size=param['batchsize'], num_workers=4, 
+        train_loader = DataLoader(train_set, batch_size=param['batchsize'], num_workers=0, 
                                 shuffle=True, collate_fn=custom_collate_fn)
-        valid_loader = DataLoader(valid_set, batch_size=param['batchsize'], num_workers=4, 
+        valid_loader = DataLoader(valid_set, batch_size=param['batchsize'], num_workers=0, 
                                 shuffle=True, collate_fn=custom_collate_fn)
         
         Final_AUC = 0; Final_AUPR = 0; Final_F1 = 0; Final_ACC = 0; Final_LOSS = math.inf

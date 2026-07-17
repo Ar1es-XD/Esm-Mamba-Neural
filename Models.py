@@ -67,7 +67,7 @@ class MambaCross(nn.Module):
                 x = layer(x)
             else:
                 x = self.act(layer(x))
-                x = torch.dropout(x, self.r, train=False)
+                x = torch.dropout(x, self.r, train=self.training)
         x = torch.squeeze(self.output_layer(x))  # last layer
         
         return torch.sigmoid(x)
