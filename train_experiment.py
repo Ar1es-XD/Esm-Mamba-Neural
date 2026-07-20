@@ -33,6 +33,11 @@ device = torch.device(
 )
 set_seed_all(SEED)
 
+if torch.cuda.is_available():
+    torch.backends.cudnn.benchmark = True
+    if hasattr(torch, 'set_float32_matmul_precision'):
+        torch.set_float32_matmul_precision('high')
+
 # ── Split → Experiment folder mapping ────────────────────────────────────────
 SPLIT_TO_EXPERIMENT = {
     'random':     'experiment_1_random',
@@ -114,12 +119,11 @@ def train_and_eval(split_col, epochs, batch_size):
     thres_ag = int(np.percentile(len_ag, 100))
     print(f"Sequence-length thresholds: ab={thres_ab}, ag={thres_ag}")
 
-    # DataLoaders (pin_memory + workers for CUDA throughput)
+    # DataLoaders (pin_memory for CUDA throughput; 0 workers for RAM-cached tensors)
     use_cuda = device.type == 'cuda'
     loader_kwargs = dict(
         pin_memory=use_cuda,
-        num_workers=4 if use_cuda else 0,
-        persistent_workers=True if use_cuda else False,
+        num_workers=0,
     )
     train_dataset = AntibodyAntigenDataset(train_filtered)
     test_dataset  = AntibodyAntigenDataset(test_filtered)
@@ -160,9 +164,9 @@ def train_and_eval(split_col, epochs, batch_size):
         model.train()
         epoch_loss = 0
         for ab_embs, ag_embs, labels in train_loader:
-            ab_embs, ag_embs, labels = (ab_embs.to(device),
-                                        ag_embs.to(device),
-                                        labels.to(device))
+            ab_embs = ab_embs.to(device, non_blocking=True)
+            ag_embs = ag_embs.to(device, non_blocking=True)
+            labels  = labels.to(device, non_blocking=True)
             optimizer.zero_grad()
             with autocast(device_type=device.type, dtype=amp_dtype, enabled=amp_enabled):
                 outputs = model(ab_embs, ag_embs)
@@ -177,7 +181,8 @@ def train_and_eval(split_col, epochs, batch_size):
         y_true, y_pred = [], []
         with torch.no_grad():
             for ab_embs, ag_embs, labels in test_loader:
-                ab_embs, ag_embs = ab_embs.to(device), ag_embs.to(device)
+                ab_embs = ab_embs.to(device, non_blocking=True)
+                ag_embs = ag_embs.to(device, non_blocking=True)
                 outputs = model(ab_embs, ag_embs)
                 y_true.extend(labels.cpu().numpy())
                 y_pred.extend(outputs.cpu().numpy())

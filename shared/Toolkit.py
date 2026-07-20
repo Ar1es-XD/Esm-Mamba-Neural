@@ -43,20 +43,53 @@ def softmax(x):
 class AntibodyAntigenDataset(Dataset):
     def __init__(self, pair_list):
         self.pairs = pair_list  # [(ab_id, ag_id, label)]
+        preload_embeddings()
     
     def __getitem__(self, idx):
         ab_id, ag_id, label = self.pairs[idx]
         ab_id_safe = str(ab_id).replace('/', '_')
-        ab_emb = np.load(os.path.join(_EMBEDDINGS_DIR, 'ab', f'{ab_id_safe}.npy'))  # (L_ab, 320)
-        ag_emb = np.load(os.path.join(_EMBEDDINGS_DIR, 'ag', f'{ag_id}.npy'))       # (L_ag, 320)
+        ag_id_str  = str(ag_id)
+        
+        ab_emb = _EMBEDDING_CACHE.get(('ab', ab_id_safe))
+        if ab_emb is None:
+            ab_emb = torch.from_numpy(np.load(os.path.join(_EMBEDDINGS_DIR, 'ab', f'{ab_id_safe}.npy'))).float()
+            
+        ag_emb = _EMBEDDING_CACHE.get(('ag', ag_id_str))
+        if ag_emb is None:
+            ag_emb = torch.from_numpy(np.load(os.path.join(_EMBEDDINGS_DIR, 'ag', f'{ag_id_str}.npy'))).float()
+            
         return (
-            torch.FloatTensor(ab_emb),
-            torch.FloatTensor(ag_emb),
-            torch.FloatTensor([int(label)])
+            ab_emb,
+            ag_emb,
+            torch.tensor([float(label)], dtype=torch.float32)
         )
     
     def __len__(self):
         return len(self.pairs)
+
+_EMBEDDING_CACHE = {}
+
+def preload_embeddings():
+    global _EMBEDDING_CACHE
+    if len(_EMBEDDING_CACHE) > 0:
+        return
+    ab_dir = os.path.join(_EMBEDDINGS_DIR, 'ab')
+    ag_dir = os.path.join(_EMBEDDINGS_DIR, 'ag')
+    if os.path.exists(ab_dir):
+        print(f"[RAM Cache] Preloading antibody embeddings from {ab_dir}...")
+        for f in os.listdir(ab_dir):
+            if f.endswith('.npy'):
+                key = ('ab', f[:-4])
+                arr = np.load(os.path.join(ab_dir, f))
+                _EMBEDDING_CACHE[key] = torch.from_numpy(arr).float()
+    if os.path.exists(ag_dir):
+        print(f"[RAM Cache] Preloading antigen embeddings from {ag_dir}...")
+        for f in os.listdir(ag_dir):
+            if f.endswith('.npy'):
+                key = ('ag', f[:-4])
+                arr = np.load(os.path.join(ag_dir, f))
+                _EMBEDDING_CACHE[key] = torch.from_numpy(arr).float()
+    print(f"[RAM Cache] Success! Cached {len(_EMBEDDING_CACHE)} tensors in memory.")
     
 def custom_collate_fn(batch):
     ab_embs = torch.stack([item[0] for item in batch])

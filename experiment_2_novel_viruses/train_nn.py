@@ -38,6 +38,11 @@ device = torch.device(
 )
 set_seed_all(SEED)
 
+if torch.cuda.is_available():
+    torch.backends.cudnn.benchmark = True
+    if hasattr(torch, 'set_float32_matmul_precision'):
+        torch.set_float32_matmul_precision('high')
+
 
 def load_split():
     """Load train/test pairs for Novel Viruses (vir_block) partitioning (prefer local folder CSVs)."""
@@ -117,8 +122,7 @@ def main(epochs=30, batch_size=32):
     use_cuda = device.type == 'cuda'
     loader_kwargs = dict(
         pin_memory=use_cuda,
-        num_workers=4 if use_cuda else 0,
-        persistent_workers=True if use_cuda else False,
+        num_workers=0,
     )
     train_dataset = AntibodyAntigenDataset(train_filtered)
     test_dataset  = AntibodyAntigenDataset(test_filtered)
@@ -155,7 +159,9 @@ def main(epochs=30, batch_size=32):
         model.train()
         epoch_loss = 0
         for ab_embs, ag_embs, labels in train_loader:
-            ab_embs, ag_embs, labels = ab_embs.to(device), ag_embs.to(device), labels.to(device)
+            ab_embs = ab_embs.to(device, non_blocking=True)
+            ag_embs = ag_embs.to(device, non_blocking=True)
+            labels  = labels.to(device, non_blocking=True)
             optimizer.zero_grad()
             with autocast(device_type=device.type, dtype=amp_dtype, enabled=amp_enabled):
                 outputs = model(ab_embs, ag_embs)
@@ -169,7 +175,8 @@ def main(epochs=30, batch_size=32):
         y_true, y_pred = [], []
         with torch.no_grad():
             for ab_embs, ag_embs, labels in test_loader:
-                ab_embs, ag_embs = ab_embs.to(device), ag_embs.to(device)
+                ab_embs = ab_embs.to(device, non_blocking=True)
+                ag_embs = ag_embs.to(device, non_blocking=True)
                 outputs = model(ab_embs, ag_embs)
                 y_true.extend(labels.cpu().numpy())
                 y_pred.extend(outputs.cpu().numpy())

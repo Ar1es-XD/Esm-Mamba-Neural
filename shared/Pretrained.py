@@ -34,6 +34,11 @@ device = torch.device("cuda" if torch.cuda.is_available()
                        else "mps" if torch.backends.mps.is_available()
                        else "cpu")
 
+if torch.cuda.is_available():
+    torch.backends.cudnn.benchmark = True
+    if hasattr(torch, 'set_float32_matmul_precision'):
+        torch.set_float32_matmul_precision('high')
+
 def alphabet_coding(data_list, is_antibody, maxlen, save_dir):
     """
     If is_antibody is True, data_list is a list of (name, heavy_seq, light_seq)
