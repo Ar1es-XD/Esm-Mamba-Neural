@@ -1,115 +1,161 @@
-# ESM-Mamba (esm-neu) — End-to-End Neural Network Experiments
+# ESM-Mamba (`esm-neu`): End-to-End Neural Network HIV Neutralization Prediction
 
-Recreates the four HIV antibody–antigen neutralisation prediction experiments from **esm-up** (L2 Logistic Regression baseline) using the **ESM-Mamba (MambaCross)** end-to-end neural network architecture.
+A high-performance PyTorch implementation of the **ESM-Mamba (MambaCross)** deep neural network architecture for predicting HIV antibody–antigen neutralization interactions. 
 
----
-
-## 🤖 AI Agent / AGY Quick Execution Guide (For NVIDIA Rig)
-
-If you are **AGY** (the Antigravity AI Agent) running on the target NVIDIA rig, follow these simple steps to run the pipeline:
-
-### 1. Environment & Setup
-```cmd
-git pull origin main
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-### 2. Launch Full Pipeline (Choose One Method)
-* **Method A: Fast Parallel Run (Recommended for 24 GB VRAM)**
-  ```cmd
-  python run_all_experiments.py --parallel
-  ```
-* **Method B: Batch Launcher (Sequential)**
-  ```cmd
-  run_pipeline.bat
-  ```
-
-### 3. Launch Standalone Experiment (Single Split)
-```cmd
-cd experiment_3_novel_antibodies
-python train_nn.py --epochs 30 --batch_size 32
-```
+This repository evaluates model generalization performance across four distinct biological data partitioning boundaries, benchmarking end-to-end neural network learning against static feature baselines (e.g., `esm-up` L2 Logistic Regression).
 
 ---
 
-## Hardware & Environment (Target Rig Specs)
+## 📌 Executive Summary & Core Concept
 
-| Component       | Details                                     |
-|-----------------|---------------------------------------------|
-| CPU             | AMD Ryzen 9 9900X (12 cores / 24 threads)   |
-| GPU (Primary)   | NVIDIA RTX PRO 4000 Blackwell (24 GB VRAM)  |
-| RAM             | 64 GB DDR5                                  |
-| OS              | Windows                                     |
-| PyTorch Backend | `cuda` (cuDNN benchmark + TF32 precision)   |
-| Mixed Precision | `bfloat16` AMP (`torch.autocast`)           |
-| Memory Caching  | In-RAM embedding pre-caching (<50 MB RAM)   |
+Predicting whether a specific antibody can neutralize a given HIV viral strain (antigen) is a fundamental problem in computational immunology and therapeutic design. 
+
+In this repository:
+1. **ESM-2 Embeddings**: Protein sequences (Antibody Heavy + Light chains, Antigen sequences) are encoded using the pre-trained `esm2_t6_8M_UR50D` transformer model to produce 320-dimensional residue-level representations.
+2. **`MambaCross` Neural Architecture**: A learnable bilinear projection matrix ($W \in \mathbb{R}^{320 \times 320}$) computes pairwise residue contact maps, which are swept using 2D Selective State Space Models (**VMamba**) to capture cross-sequence biophysical dependencies.
+3. **End-to-End Backpropagation**: Unlike feature-extraction baselines (`esm-up`) that fit linear models on frozen representations, **`esm-neu` trains the entire network end-to-end** using Binary Cross-Entropy (BCE) loss, dynamically updating projection matrices, Mamba weights, and MLP layers simultaneously.
 
 ---
 
-## Project Structure
+## 🔬 The 4 Generalization Experiments
+
+The dataset comprises **74,730 HIV antibody–antigen interaction pairs**. To rigorously test how well the model generalizes to new real-world scenarios, the data is partitioned into four distinct experimental boundaries:
+
+| # | Experiment | Generalization Boundary | Description & Biological Context | Train Pairs | Test Pairs | Excluded Pairs |
+|---|---|---|---|---|---|---|
+| **1** | **Random Split** | **Interpolation Baseline** | Row-level random 80/20 split. Antibodies and antigens in the test set were seen during training in different pair combinations. Tests maximum model capacity. | 59,799 (80.0%) | 14,931 (20.0%) | 0 |
+| **2** | **Novel Viruses** | **Antigen Holdout** | **541 unique viral strains** are completely held out from training. Tests the model's ability to generalize zero-shot to newly emerging viral variants. | 61,219 (81.9%) | 13,511 (18.1%) | 0 |
+| **3** | **Novel Antibodies** | **Antibody Holdout** | **137 unique antibodies** are completely held out from training. Tests zero-shot generalization to novel, newly engineered antibody candidates. | 57,903 (77.5%) | 16,827 (22.5%) | 0 |
+| **4** | **Both Novel** | **Bi-directional Extrapolation** | Both antibody (**232**) and virus (**749**) identities in test pairs are completely unseen in training. **32,650 single-novel overlap pairs are excluded** to eliminate feature leakage. | 34,774 (46.5%) | 7,306 (9.8%) | 32,650 (43.7%) |
+
+---
+
+## ⚡ High-Performance Hardware Architecture
+
+This repository is optimized for high-throughput GPU training on modern hardware rigs (e.g., **NVIDIA RTX PRO 4000 Blackwell 24 GB VRAM / AMD Ryzen 9 9900X**):
+
+* **In-RAM Pre-caching**: Embeddings for all 665 antibodies and 2,624 antigens are pre-loaded into system RAM (< 50 MB) upon initialization. Training loops run with **zero disk I/O latency**.
+* **Tensor Core (TF32) Speedups**: Activated via `torch.set_float32_matmul_precision('high')`.
+* **cuDNN Kernel Autotuning**: Enabled via `torch.backends.cudnn.benchmark = True`.
+* **Mixed-Precision (`bfloat16`)**: Native AMP (`torch.autocast`) training for maximum GPU throughput.
+* **Non-Blocking Asynchronous Transfers**: Memory transfers to GPU run asynchronously via `pin_memory=True` and `non_blocking=True`.
+
+---
+
+## 📂 Repository Layout
 
 ```
 esm-neu/
-├── shared/                          # Core reusable modules
-│   ├── Models.py                    #   MambaCross neural network
-│   ├── Toolkit.py                   #   RAM embedding caching & metrics
-│   ├── Loader.py                    #   PairDataset loader
-│   ├── Pretrained.py                #   ESM-2 embedding extractor
-│   └── Param_Model.json             #   Model hyper-parameters
+├── README.md                        # Master human-readable documentation (this file)
+├── AGY_INSTRUCTIONS.md              # Machine-actionable guide for AI Agents (AGY)
 │
-├── Data/HIV/                        # Raw data
-│   ├── ab_ag_pair.csv               #   Pairs + split columns
-│   ├── antibody.csv                 #   Antibody sequences
-│   └── antigen.csv                  #   Antigen sequences
+├── shared/                          # Core neural network modules & utilities
+│   ├── Models.py                    #   MambaCross network & VMamba 2D state-space sweeps
+│   ├── Toolkit.py                   #   RAM embedding pre-cacher & evaluation metrics
+│   ├── Loader.py                    #   Dataset batch loader
+│   ├── Pretrained.py                #   ESM-2 (8M) sequence embedding extractor
+│   └── Param_Model.json             #   Model hyperparameters & architecture config
 │
-├── Outputs/Pretrained_HIV/          # Pre-extracted ESM-2 embeddings
-│   ├── ab/                          #   665 antibody .npy files
-│   └── ag/                          #   2,624 antigen .npy files
+├── Data/HIV/                        # Raw biological sequences and pair tables
+│   ├── ab_ag_pair.csv               #   Complete interaction pairs + partition flags
+│   ├── antibody.csv                 #   Heavy and Light chain antibody sequences
+│   └── antigen.csv                  #   Viral antigen sequences
 │
-├── experiment_1_random/             # Exp 1: Random split (59,799 train / 14,931 test)
-│   ├── train_nn.py                  #   Standalone experiment trainer
-│   ├── train.csv & test.csv         #   Local partition files
-│   └── results/                     #   results.json & best_model.pt
+├── Outputs/Pretrained_HIV/          # Pre-extracted ESM-2 sequence embeddings
+│   ├── ab/                          #   665 antibody .npy representation files
+│   └── ag/                          #   2,624 antigen .npy representation files
 │
-├── experiment_2_novel_viruses/      # Exp 2: Virus holdout (61,219 train / 13,511 test)
-│   ├── train_nn.py                  #   Standalone experiment trainer
-│   ├── train.csv & test.csv         #   Local partition files
-│   └── results/                     #   results.json & best_model.pt
+├── experiment_1_random/             # Exp 1: Random Split (Interpolation)
+│   ├── train_nn.py                  #   Self-contained experiment trainer
+│   ├── data/{train.csv, test.csv}   #   Local partition CSV files
+│   └── results/{results.json, best_model.pt}
 │
-├── experiment_3_novel_antibodies/   # Exp 3: Antibody holdout (57,903 train / 16,827 test)
-│   ├── train_nn.py                  #   Standalone experiment trainer
-│   ├── train.csv & test.csv         #   Local partition files
-│   └── results/                     #   results.json & best_model.pt
+├── experiment_2_novel_viruses/      # Exp 2: Novel Viruses (Antigen Holdout)
+│   ├── train_nn.py                  #   Self-contained experiment trainer
+│   ├── data/{train.csv, test.csv}   #   Local partition CSV files
+│   └── results/{results.json, best_model.pt}
 │
-├── experiment_4_both_novel/         # Exp 4: Double holdout (34,774 train / 7,306 test)
-│   ├── train_nn.py                  #   Standalone experiment trainer
-│   ├── train.csv & test.csv         #   Local partition files
-│   └── results/                     #   results.json & best_model.pt
+├── experiment_3_novel_antibodies/   # Exp 3: Novel Antibodies (Antibody Holdout)
+│   ├── train_nn.py                  #   Self-contained experiment trainer
+│   ├── data/{train.csv, test.csv}   #   Local partition CSV files
+│   └── results/{results.json, best_model.pt}
 │
-├── train_experiment.py              # Master single-experiment launcher by split column
-├── run_all_experiments.py           # Master runner (sequential & parallel modes)
+├── experiment_4_both_novel/         # Exp 4: Both Novel (Double Holdout)
+│   ├── train_nn.py                  #   Self-contained experiment trainer
+│   ├── data/{train.csv, test.csv}   #   Local partition CSV files
+│   └── results/{results.json, best_model.pt}
+│
+├── train_experiment.py              # Single experiment launcher by split column
+├── run_all_experiments.py           # Master runner (supports sequential & parallel modes)
 ├── run_pipeline.bat                 # One-click Windows batch launcher
-├── nn_summary_results.csv           # Consolidated results summary
+├── nn_summary_results.csv           # Consolidated results summary (generated)
 └── requirements.txt                 # Dependencies
 ```
 
 ---
 
-## Experiments Summary
+## 🚀 Quick Start Guide
 
-| # | Experiment Name     | Split Column | Holdout Constraint | Train Pairs | Test Pairs | Excluded |
-|---|--------------------|-------------|-------------------|-------------|------------|----------|
-| 1 | Random Split       | `random`     | None (interpolation) | 59,799 (80.0%) | 14,931 (20.0%) | 0 |
-| 2 | Novel Viruses      | `vir_block`  | 541 viruses held out | 61,219 (81.9%) | 13,511 (18.1%) | 0 |
-| 3 | Novel Antibodies   | `ab_block`   | 137 antibodies held out | 57,903 (77.5%) | 16,827 (22.5%) | 0 |
-| 4 | Both Novel         | `both_block` | 232 Abs & 749 Vir held out | 34,774 (46.5%) | 7,306 (9.8%) | 32,650 |
+### 1. Installation & Environment Setup
+
+Clone the repository and set up a Python virtual environment:
+
+```bash
+# Clone the repository
+git clone https://github.com/Ar1es-XD/Esm-Mamba-Neural.git esm-neu
+cd esm-neu
+
+# Create and activate virtual environment
+python3 -m venv .venv
+source .venv/bin/activate       # Linux/macOS
+# .venv\Scripts\activate        # Windows
+
+# Install required packages
+pip install -r requirements.txt
+```
+
+### 2. Running All Experiments
+
+#### Option A: Fast Parallel Execution (Recommended for Multi-Core / High VRAM GPUs)
+Executes all 4 experiments concurrently using parallel process workers:
+```bash
+python3 run_all_experiments.py --parallel --epochs 30 --batch_size 32
+```
+
+#### Option B: One-Click Windows Batch Script
+```cmd
+run_pipeline.bat
+```
+
+#### Option C: Sequential Pipeline Execution
+```bash
+python3 run_all_experiments.py --epochs 30 --batch_size 32
+```
+
+### 3. Running a Single Experiment Standalone
+
+Each experiment folder is completely self-contained. You can navigate into any experiment directory and run it independently:
+
+```bash
+cd experiment_3_novel_antibodies
+python3 train_nn.py --epochs 30 --batch_size 32
+```
 
 ---
 
-## Methodology & Architecture
+## 📈 Evaluation Metrics & Outputs
 
-Unlike **esm-up** (which freezes an untrained MambaCross model as a random projection encoder and fits Logistic Regression on cached representations), **esm-neu** trains the full MambaCross architecture **end-to-end** with Binary Cross Entropy loss. The bilinear projection matrix and 2D VMamba sequence sweeps are updated dynamically via backpropagation alongside the MLP decoder.
+During training, models are evaluated at each epoch on the test set. The model checkpoint with the highest **AUROC** is automatically saved to `results/best_model.pt`.
 
-Training runs for 30 epochs with `bfloat16` mixed-precision on CUDA; the checkpoint with the highest test AUROC is saved to `results/best_model.pt` for each experiment.
+Metrics exported to `results/results.json` and aggregated in `nn_summary_results.csv`:
+* **AUROC**: Area Under Receiver Operating Characteristic curve
+* **AUPRC**: Area Under Precision-Recall Curve
+* **Accuracy**: Classification Accuracy (at threshold 0.5)
+* **F1 Score**: Harmonic mean of Precision and Recall
+* **Best Epoch**: Epoch index where maximum test performance occurred
+
+---
+
+## 🤖 Guide for AI Agents (AGY)
+
+If you are an automated AI agent (such as **AGY**), see [AGY_INSTRUCTIONS.md](AGY_INSTRUCTIONS.md) for step-by-step machine execution guidelines, CLI flags, verification commands, and troubleshooting routines.
