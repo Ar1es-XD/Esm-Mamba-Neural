@@ -1,48 +1,65 @@
 # -*- coding: utf-8 -*-
 """
 run_all_experiments.py
-Master pipeline: sequentially trains ESM-Mamba on all 4 experiment splits
-and produces a consolidated summary CSV.
+Master pipeline: runs all 4 self-contained ESM-Mamba neural network experiments
+(either sequentially or concurrently in parallel) by invoking each folder's train_nn.py script,
+and aggregates metrics into nn_summary_results.csv.
 """
 import os
 import sys
 import json
+import argparse
 import subprocess
 import pandas as pd
 
 EXPERIMENTS = [
-    ("Experiment 1 – Random Split",              "random",     "experiment_1_random"),
-    ("Experiment 2 – Novel Viruses",              "vir_block",  "experiment_2_novel_viruses"),
-    ("Experiment 3 – Novel Antibodies",           "ab_block",   "experiment_3_novel_antibodies"),
-    ("Experiment 4 – Both Novel (Double Holdout)","both_block", "experiment_4_both_novel"),
+    ("experiment_1_random",             "Experiment 1 – Random Split"),
+    ("experiment_2_novel_viruses",      "Experiment 2 – Novel Viruses"),
+    ("experiment_3_novel_antibodies",   "Experiment 3 – Novel Antibodies"),
+    ("experiment_4_both_novel",         "Experiment 4 – Both Novel (Double Holdout)"),
 ]
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
 
+def run_experiment(folder, name, epochs, batch_size):
+    exp_dir = os.path.join(ROOT, folder)
+    print(f"\n{'─'*70}\n>>> Launching {name} ({folder})...\n{'─'*70}")
+    
+    cmd = [sys.executable, "train_nn.py", "--epochs", str(epochs), "--batch_size", str(batch_size)]
+    res = subprocess.run(cmd, cwd=exp_dir)
+    return folder, name, res.returncode
+
+
 def main():
+    parser = argparse.ArgumentParser(description="Run all ESM-Neu neural network experiments")
+    parser.add_argument('--parallel', action='store_true', help="Run experiments concurrently at the same time in parallel processes")
+    parser.add_argument('--epochs', type=int, default=30)
+    parser.add_argument('--batch_size', type=int, default=32)
+    args = parser.parse_args()
+
     print("=" * 70)
-    print("  Running All ESM-Mamba Neural Network Experiments In Sequence")
+    print(f"  Running All ESM-Mamba Neural Network Experiments ({'Parallel' if args.parallel else 'Sequential'})")
     print("=" * 70, "\n")
 
+    if args.parallel:
+        from concurrent.futures import ProcessPoolExecutor
+        print("Launching all 4 experiments concurrently at the same time...")
+        with ProcessPoolExecutor(max_workers=4) as executor:
+            futures = [
+                executor.submit(run_experiment, folder, name, args.epochs, args.batch_size)
+                for folder, name in EXPERIMENTS
+            ]
+            for f in futures:
+                f.result()
+    else:
+        for folder, name in EXPERIMENTS:
+            run_experiment(folder, name, args.epochs, args.batch_size)
+
+    # Aggregate results into consolidated summary table
     summary_rows = []
-
-    for name, split_col, exp_dir in EXPERIMENTS:
-        print(f"\n{'─'*70}")
-        print(f">>> {name}  (col: {split_col})")
-        print(f"{'─'*70}")
-
-        try:
-            subprocess.run(
-                [sys.executable, os.path.join(ROOT, "train_experiment.py"),
-                 "--split_col", split_col,
-                 "--epochs", "30"],
-                check=True, cwd=ROOT
-            )
-        except Exception as e:
-            print(f"  ✗ Failed: {e}")
-
-        results_path = os.path.join(ROOT, exp_dir, "results", "results.json")
+    for folder, name in EXPERIMENTS:
+        results_path = os.path.join(ROOT, folder, "results", "results.json")
         if os.path.exists(results_path):
             try:
                 with open(results_path, 'r') as f:
@@ -59,9 +76,9 @@ def main():
                     "F1":         f"{m.get('F1 Score', 0):.4f}",
                 })
             except Exception as e:
-                print(f"  ✗ Could not read results: {e}")
+                print(f"  ✗ Could not read results for {name}: {e}")
         else:
-            print(f"  ⚠ results.json not found for {split_col}")
+            print(f"  ⚠ results.json not found for {folder}")
             summary_rows.append({
                 "Experiment": name,
                 "Train n": "N/A", "Test n": "N/A", "Test %neut": "N/A",
@@ -69,7 +86,7 @@ def main():
                 "Accuracy": "N/A", "F1": "N/A",
             })
 
-    # ── Summary ──────────────────────────────────────────────────────────
+    # Save nn_summary_results.csv at top level
     summary_df = pd.DataFrame(summary_rows)
     summary_csv = os.path.join(ROOT, "nn_summary_results.csv")
     summary_df.to_csv(summary_csv, index=False)
