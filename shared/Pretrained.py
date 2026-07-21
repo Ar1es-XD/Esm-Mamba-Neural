@@ -58,6 +58,8 @@ def alphabet_coding(data_list, is_antibody, maxlen, save_dir):
             with torch.no_grad():
                 if is_antibody:
                     _, heavy_seq, light_seq = item
+                    heavy_seq = str(heavy_seq).replace('#', 'X')
+                    light_seq = str(light_seq).replace('#', 'X')
                     
                     # Embed Heavy
                     _, _, t_h = batch_converter([(name, heavy_seq)])
@@ -79,6 +81,7 @@ def alphabet_coding(data_list, is_antibody, maxlen, save_dir):
                     
                 else:
                     _, ag_seq = item
+                    ag_seq = str(ag_seq).replace('#', 'X')
                     _, _, t_ag = batch_converter([(name, ag_seq)])
                     t_ag = t_ag.to(device)
                     L_ag = (t_ag != alphabet.padding_idx).sum().item()
@@ -95,7 +98,8 @@ def alphabet_coding(data_list, is_antibody, maxlen, save_dir):
                 else:
                     padded_tensor = seq_feats[:maxlen, :]
                 
-                np.save(f"{save_dir}/{name}.npy", padded_tensor.cpu().numpy())
+                save_name = name.replace('/', '_')
+                np.save(f"{save_dir}/{save_name}.npy", padded_tensor.cpu().numpy())
         except Exception as e:
             print(f"Failed on {name}: {e}")
 

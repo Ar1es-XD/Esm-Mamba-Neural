@@ -156,6 +156,82 @@ Metrics exported to `results/results.json` and aggregated in `nn_summary_results
 
 ---
 
+## 📊 Visualizations Gallery
+
+The repository includes a comprehensive data visualization suite located inside the `visualizations/` folder. These figures analyze raw data properties, embedding distributions, model convergence, and robustness profiles.
+
+### 1. Dataset Target Class Balance & Unique Entities
+* **File:** `visualizations/figures/fig1_dataset_distribution.png`
+* **Script:** [visualizations/fig1_dataset_distribution.py](visualizations/fig1_dataset_distribution.py)
+* **Description:** Details the target label balance (58.8% neutralizing positive interactions) and biological entity representation (Unique Antibodies and Viral Antigens).
+
+![Figure 1: Dataset Target Class and Entity Distribution](visualizations/figures/fig1_dataset_distribution.png)
+
+---
+
+### 2. Experimental Splitting Configurations
+* **File:** `visualizations/figures/fig2_partition_splits.png`
+* **Script:** [visualizations/fig2_partition_splits.py](visualizations/fig2_partition_splits.py)
+* **Description:** Illustrates the Train, Test, and Excluded interaction pair allocations across all four experimental partitions (Interpolation vs Holdouts).
+
+![Figure 2: Experimental Splitting Configurations](visualizations/figures/fig2_partition_splits.png)
+
+---
+
+### 3. Biological Sequence Length Distributions
+* **File:** `visualizations/figures/fig3_sequence_lengths.png`
+* **Script:** [visualizations/fig3_sequence_lengths.py](visualizations/fig3_sequence_lengths.py)
+* **Description:** Displays amino acid sequence length distributions for combined Antibody (Heavy+Light) chains and Antigen sequences, marking the 256-residue Sequence Adaptive Pooling target threshold.
+
+![Figure 3: Sequence Length Distributions](visualizations/figures/fig3_sequence_lengths.png)
+
+---
+
+### 4. ESM-2 Embeddings Representation Space PCA
+* **File:** `visualizations/figures/fig4_esm_embedding_pca.png`
+* **Script:** [visualizations/fig4_esm_embedding_pca.py](visualizations/fig4_esm_embedding_pca.py)
+* **Description:** Shows 2D Principal Component Analysis (PCA) projections of the 320-dimensional ESM-2 sequence embeddings for both antibodies and antigens.
+
+![Figure 4: ESM-2 Embeddings Space](visualizations/figures/fig4_esm_embedding_pca.png)
+
+---
+
+### 5. ESM-Mamba Biophysical Fused Feature Space
+* **File:** `visualizations/figures/fig5_fused_feature_pca.png`
+* **Script:** [visualizations/fig5_fused_feature_pca.py](visualizations/fig5_fused_feature_pca.py)
+* **Description:** Shows PCA and t-SNE projections of the 512-dimensional fused feature representation vectors extracted from the trained MambaCross layer, colored by neutralizing class.
+
+![Figure 5: Fused Feature Space](visualizations/figures/fig5_fused_feature_pca.png)
+
+---
+
+### 6. Validation Performance Benchmarks
+* **File:** `visualizations/figures/fig6_benchmark_performance.png`
+* **Script:** [visualizations/fig6_benchmark_performance.py](visualizations/fig6_benchmark_performance.py)
+* **Description:** Compares the final validation AUROC and AUPRC scores across all four experiments, demonstrating high-capacity neural learning.
+
+![Figure 6: Validation Performance](visualizations/figures/fig6_benchmark_performance.png)
+
+---
+
+### 7. Model Generalization & Asymmetry Gap
+* **File:** `visualizations/figures/fig7_generalization_degradation.png`
+* **Script:** [visualizations/fig7_generalization_degradation.py](visualizations/fig7_generalization_degradation.py)
+* **Description:** Tracks metric degradation across extrapolation splits and highlights the performance asymmetry gap showing that antibody holdout mapping is significantly more challenging than virus holdout.
+
+![Figure 7: Generalization Degradation](visualizations/figures/fig7_generalization_degradation.png)
+
+---
+
+### 8. Calibration & ROC Diagnostics
+* **File:** `visualizations/figures/fig8_model_diagnostics.png`
+* **Script:** [visualizations/fig8_model_diagnostics.py](visualizations/fig8_model_diagnostics.py)
+* **Description:** Comprehensive model evaluation suite showing ROC curves, PR curves, Calibration curves (reliability diagrams), and confidence probability densities across all experiments.
+
+![Figure 8: Model Diagnostics](visualizations/figures/fig8_model_diagnostics.png)
+
+---
+
 ## 🤖 Guide for AI Agents (AGY)
 
 If you are an automated AI agent (such as **AGY**), see [AGY_INSTRUCTIONS.md](AGY_INSTRUCTIONS.md) for step-by-step machine execution guidelines, CLI flags, verification commands, and troubleshooting routines.

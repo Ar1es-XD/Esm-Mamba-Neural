@@ -1,0 +1,12 @@
+{
+    "Experiment": "experiment_3_novel_antibodies",
+    "Split Column": "ab_block",
+    "Train n": 57903,
+    "Test n": 16827,
+    "Test %neutralizing": 59.67,
+    "AUROC": 0.8264,
+    "AUPRC": 0.8781,
+    "Accuracy": 0.7398,
+    "F1 Score": 0.7679,
+    "Best Epoch": 7
+}

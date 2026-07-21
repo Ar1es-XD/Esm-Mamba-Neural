@@ -116,8 +116,8 @@ def main(epochs=30, batch_size=32):
     len_ab = (ab_info['heavy'].fillna('').astype(str).str.len()
               + ab_info['light'].fillna('').astype(str).str.len())
     len_ag = ag_info['ag_seq'].astype(str).str.len()
-    thres_ab = int(np.percentile(len_ab, 100))
-    thres_ag = int(np.percentile(len_ag, 100))
+    thres_ab = 256
+    thres_ag = 256
 
     use_cuda = device.type == 'cuda'
     loader_kwargs = dict(
@@ -153,9 +153,23 @@ def main(epochs=30, batch_size=32):
 
     best_auc = 0.0
     best_metrics = {}
+    start_epoch = 0
+    checkpoint_path = os.path.join(results_dir, 'checkpoint.pt')
+    if os.path.exists(checkpoint_path):
+        try:
+            checkpoint = torch.load(checkpoint_path, map_location=device)
+            model.load_state_dict(checkpoint['model_state_dict'])
+            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            start_epoch = checkpoint['epoch']
+            best_auc = checkpoint['best_auc']
+            best_metrics = checkpoint.get('best_metrics', {})
+            print(f"-> Resuming Exp 2 from checkpoint: epoch {start_epoch} (best AUC so far: {best_auc:.4f})")
+        except Exception as e:
+            print(f"Could not load checkpoint: {e}. Starting from scratch.")
 
-    print(f"Training Exp 2 (Novel Viruses) on {device} for {epochs} epochs...")
-    for epoch in range(epochs):
+    print(f"Training Exp 2 (Novel Viruses) on {device} from epoch {start_epoch+1} to {epochs}..." if start_epoch > 0
+          else f"Training Exp 2 (Novel Viruses) on {device} for {epochs} epochs...")
+    for epoch in range(start_epoch, epochs):
         model.train()
         epoch_loss = 0
         for ab_embs, ag_embs, labels in train_loader:
@@ -165,7 +179,7 @@ def main(epochs=30, batch_size=32):
             optimizer.zero_grad()
             with autocast(device_type=device.type, dtype=amp_dtype, enabled=amp_enabled):
                 outputs = model(ab_embs, ag_embs)
-                loss = criterion(outputs, labels)
+            loss = criterion(outputs.float(), labels.float())
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
@@ -201,11 +215,31 @@ def main(epochs=30, batch_size=32):
             }
             torch.save(model.state_dict(), os.path.join(results_dir, 'best_model.pt'))
 
+        # Save epoch checkpoint
+        try:
+            checkpoint_data = {
+                'epoch': epoch + 1,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'best_auc': best_auc,
+                'best_metrics': best_metrics
+            }
+            torch.save(checkpoint_data, checkpoint_path)
+        except Exception as e:
+            print(f"Warning: could not save checkpoint: {e}")
+
     results_json = os.path.join(results_dir, 'results.json')
     with open(results_json, 'w') as f:
         json.dump(best_metrics, f, indent=4)
 
-    print(f"✓ [Exp 2] Best AUC={best_auc:.4f} (epoch {best_metrics.get('Best Epoch')}). Saved -> {results_json}")
+    # Clean up checkpoint on successful completion
+    if os.path.exists(checkpoint_path):
+        try:
+            os.remove(checkpoint_path)
+        except Exception as e:
+            pass
+
+    print(f"[Success] [Exp 2] Best AUC={best_auc:.4f} (epoch {best_metrics.get('Best Epoch')}). Saved -> {results_json}")
     return best_metrics
 
 

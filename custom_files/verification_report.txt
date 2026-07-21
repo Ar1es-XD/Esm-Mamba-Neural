@@ -1,0 +1,40 @@
+================================================================================
+ESM-MAMBA NEURAL NETWORK WEIGHTS VERIFICATION REPORT
+================================================================================
+Timestamp: 2026-07-21 14:51:29.660670
+Device utilized: cuda
+CUDA Available: True
+--------------------------------------------------------------------------------
+
+Analyzing experiment_1_random (Split column: random)...
+  Saved AUROC:    0.9277 | Recalculated AUROC:    0.9277
+  Saved AUPRC:    0.9509 | Recalculated AUPRC:    0.9509
+  Saved Accuracy: 0.8484 | Recalculated Accuracy: 0.8482
+  Saved F1:       0.8702 | Recalculated F1:       0.8702
+  [SUCCESS] Verification passed. Recalculated metrics match results.json.
+
+Analyzing experiment_2_novel_viruses (Split column: vir_block)...
+  Saved AUROC:    0.8838 | Recalculated AUROC:    0.8838
+  Saved AUPRC:    0.9233 | Recalculated AUPRC:    0.9233
+  Saved Accuracy: 0.8032 | Recalculated Accuracy: 0.8033
+  Saved F1:       0.8365 | Recalculated F1:       0.8367
+  [SUCCESS] Verification passed. Recalculated metrics match results.json.
+
+Analyzing experiment_3_novel_antibodies (Split column: ab_block)...
+  Saved AUROC:    0.8264 | Recalculated AUROC:    0.8264
+  Saved AUPRC:    0.8781 | Recalculated AUPRC:    0.8781
+  Saved Accuracy: 0.7398 | Recalculated Accuracy: 0.7399
+  Saved F1:       0.7679 | Recalculated F1:       0.7679
+  [SUCCESS] Verification passed. Recalculated metrics match results.json.
+
+Analyzing experiment_4_both_novel (Split column: both_block)...
+  Saved AUROC:    0.7305 | Recalculated AUROC:    0.7305
+  Saved AUPRC:    0.7863 | Recalculated AUPRC:    0.7863
+  Saved Accuracy: 0.6768 | Recalculated Accuracy: 0.6770
+  Saved F1:       0.7141 | Recalculated F1:       0.7142
+  [SUCCESS] Verification passed. Recalculated metrics match results.json.
+
+--------------------------------------------------------------------------------
+VERIFICATION STATUS: SUCCESSFUL
+Conclusion: All model checkpoints are verified, loaded correctly on GPU, and reproduce original metrics.
+================================================================================

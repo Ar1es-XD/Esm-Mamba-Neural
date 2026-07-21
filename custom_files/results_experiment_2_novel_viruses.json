@@ -1,0 +1,12 @@
+{
+    "Experiment": "experiment_2_novel_viruses",
+    "Split Column": "vir_block",
+    "Train n": 61219,
+    "Test n": 13511,
+    "Test %neutralizing": 60.38,
+    "AUROC": 0.8838,
+    "AUPRC": 0.9233,
+    "Accuracy": 0.8032,
+    "F1 Score": 0.8365,
+    "Best Epoch": 3
+}

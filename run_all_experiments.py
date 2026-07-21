@@ -24,7 +24,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 
 def run_experiment(folder, name, epochs, batch_size):
     exp_dir = os.path.join(ROOT, folder)
-    print(f"\n{'─'*70}\n>>> Launching {name} ({folder})...\n{'─'*70}")
+    print(f"\n{'-'*70}\n>>> Launching {name} ({folder})...\n{'-'*70}")
     
     cmd = [sys.executable, "train_nn.py", "--epochs", str(epochs), "--batch_size", str(batch_size)]
     res = subprocess.run(cmd, cwd=exp_dir)
@@ -76,9 +76,9 @@ def main():
                     "F1":         f"{m.get('F1 Score', 0):.4f}",
                 })
             except Exception as e:
-                print(f"  ✗ Could not read results for {name}: {e}")
+                print(f"  [Error] Could not read results for {name}: {e}")
         else:
-            print(f"  ⚠ results.json not found for {folder}")
+            print(f"  [Warning] results.json not found for {folder}")
             summary_rows.append({
                 "Experiment": name,
                 "Train n": "N/A", "Test n": "N/A", "Test %neut": "N/A",
@@ -96,7 +96,7 @@ def main():
     print(f"{'=' * 70}")
     print(summary_df.to_string(index=False))
     print(f"{'=' * 70}")
-    print(f"\n✓ Summary saved → {summary_csv}\n")
+    print(f"\n[Success] Summary saved -> {summary_csv}\n")
 
 
 if __name__ == '__main__':

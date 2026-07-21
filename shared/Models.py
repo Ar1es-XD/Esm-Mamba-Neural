@@ -10,6 +10,8 @@ class MambaCross(nn.Module):
                  mamba_layer, pooling='avg', activation='SiLU', drop_ratio=0.1):
         super(MambaCross, self).__init__()
         self.W = nn.Parameter(torch.randn(feat_dim, feat_dim))  
+        self.hor_dim = hor_dim
+        self.ver_dim = ver_dim
         
         # -------mamba_encoder
         self.config_hor = MambaConfig(d_model=hor_dim, expand_factor=1, n_layers=mamba_layer)
@@ -32,7 +34,7 @@ class MambaCross(nn.Module):
             self.act = F.tanh
         else:
             self.act = F.relu
-
+ 
         self.hidden_layers = nn.ModuleList()
         prev_size = seq_len
         for hidden_size in hidden_sizes:
@@ -42,7 +44,7 @@ class MambaCross(nn.Module):
         self.output_layer = nn.Linear(prev_size, 1)
         self.r = drop_ratio
         self.reset_para()
-    
+     
     def reset_para(self):
         nn.init.xavier_uniform_(self.W) 
         for m in self.modules():
@@ -51,8 +53,12 @@ class MambaCross(nn.Module):
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
         return
-
+ 
     def forward(self, x_Ab, x_Ag):
+        # Downsample sequence dimension to hor_dim/ver_dim to optimize pscan memory and speed
+        x_Ab = F.adaptive_avg_pool1d(x_Ab.transpose(1, 2), self.ver_dim).transpose(1, 2)
+        x_Ag = F.adaptive_avg_pool1d(x_Ag.transpose(1, 2), self.hor_dim).transpose(1, 2)
+
         #-----Mamba fusion
         contacts = torch.matmul(torch.matmul(x_Ab, self.W), x_Ag.transpose(1, 2))
         x_Ab = self.mamba_hor(contacts)
