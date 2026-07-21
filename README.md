@@ -171,10 +171,13 @@ python3 visualizations/run_all_visualizations.py
 ```
 esm-neu/
 ├── Data/HIV/                 # Raw sequence data (antibody.csv, antigen.csv, ab_ag_pair.csv)
-├── docs/                     # Scientific documentation, methodology notes & legacy logs
+├── docs/                     # Scientific documentation, methodology notes & helper scripts
 │   ├── methodology_explanation.txt
 │   ├── pipeline_documentation.txt
-│   └── scientific_review.txt
+│   ├── scientific_review.txt
+│   ├── changelog.txt
+│   ├── verification_report.txt
+│   └── scripts/              # Helper utility scripts (organize_results, plot_results, verify_weights)
 │
 ├── shared/                   # Core neural network modules & PyTorch model code
 │   ├── Models.py             #   MambaCross network & VMamba 2D state-space sweeps
