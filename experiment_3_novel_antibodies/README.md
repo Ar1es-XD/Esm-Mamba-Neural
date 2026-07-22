@@ -19,8 +19,8 @@ python train_nn.py --epochs 30 --batch_size 32
 
 All pairs containing certain antibody identities are held out entirely for testing. The model must generalize zero-shot to previously unseen antibody sequences.
 
-* **Train set ($n$)**: 57,903 pairs (77.5%) | 58.30% neutralizing
-* **Test set ($n$)**: 16,827 pairs (22.5%) | 59.67% neutralizing
+* **Train set (n)**: 57,903 pairs (77.5%) | 58.30% neutralizing
+* **Test set (n)**: 16,827 pairs (22.5%) | 59.67% neutralizing
 * **Held-out Entities**: 137 unique antibodies completely excluded from training.
 
 ---

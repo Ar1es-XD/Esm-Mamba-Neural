@@ -19,8 +19,8 @@ python train_nn.py --epochs 30 --batch_size 32
 
 All pairs containing certain virus (antigen) identities are held out entirely for testing. The model must generalize zero-shot to previously unseen viral sequence variants.
 
-* **Train set ($n$)**: 61,219 pairs (81.9%) | 58.22% neutralizing
-* **Test set ($n$)**: 13,511 pairs (18.1%) | 60.38% neutralizing
+* **Train set (n)**: 61,219 pairs (81.9%) | 58.22% neutralizing
+* **Test set (n)**: 13,511 pairs (18.1%) | 60.38% neutralizing
 * **Held-out Entities**: 541 unique viruses completely excluded from training.
 
 ---

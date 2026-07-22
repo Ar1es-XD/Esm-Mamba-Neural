@@ -19,8 +19,8 @@ python train_nn.py --epochs 30 --batch_size 32
 
 Antibody–antigen pairs are randomly assigned to train/test sets with no constraint on entity identity overlap. This represents the easiest generalisation setting (interpolation baseline).
 
-* **Train set ($n$)**: 59,799 pairs (80.0%) | 58.54% neutralizing
-* **Test set ($n$)**: 14,931 pairs (20.0%) | 58.88% neutralizing
+* **Train set (n)**: 59,799 pairs (80.0%) | 58.54% neutralizing
+* **Test set (n)**: 14,931 pairs (20.0%) | 58.88% neutralizing
 * **Holdout constraints**: None (antibodies and antigens overlap between train and test in different pair combinations).
 
 ---

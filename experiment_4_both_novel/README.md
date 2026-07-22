@@ -19,9 +19,9 @@ python train_nn.py --epochs 30 --batch_size 32
 
 Both the antibody and virus identities in the test set are unseen during training. Pairs where only one component is novel (**32,650 pairs**, labeled `'excl'`) are excluded to eliminate single-component feature leakage. This represents the hardest extrapolation setting.
 
-* **Train set ($n$)**: 34,774 pairs (46.5%) | 59.49% neutralizing
-* **Test set ($n$)**: 7,306 pairs (9.8%) | 56.78% neutralizing
-* **Excluded pairs ($n$)**: 32,650 pairs (43.7%)
+* **Train set (n)**: 34,774 pairs (46.5%) | 59.49% neutralizing
+* **Test set (n)**: 7,306 pairs (9.8%) | 56.78% neutralizing
+* **Excluded pairs (n)**: 32,650 pairs (43.7%)
 * **Held-out Entities**: 232 antibodies and 749 viruses completely excluded from training.
 
 ---
